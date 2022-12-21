@@ -7,8 +7,8 @@
     ],
     "redirects": [
         {
-            "src": "/(.*)",
-            "dist": "/index.js"
+            "source": "/(.*)",
+            "destination": "/index.js"
         }
     ]
 }

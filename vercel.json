@@ -5,10 +5,10 @@
             "use": "@vercel/node"
         }
     ],
-    "redirects": [
+    "routes": [
         {
-            "source": "/(.*)",
-            "destination": "/index.js"
+            "src": "/(.*)",
+            "dist": "/index.js"
         }
     ]
 }

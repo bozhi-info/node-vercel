@@ -1,7 +1,9 @@
 const express = require('express'),
-app = express(),
-bodyParser = require('body-parser'),
-morgan = require('morgan');
+	app = express(),
+	bodyParser = require('body-parser'),
+	morgan = require('morgan');
+	cors = require('cors');
+	
 
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', true);
@@ -10,12 +12,18 @@ const Models = require('./models.js');
 const Movies = Models.Movie; //refer to the model names you defined in “models.js”
 const Users = Models.User; //refer to the model names you defined in “models.js”
 
-mongoose.connect('mongodb://localhost:27017/myFlixDB ', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect('mongodb://localhost:27017/myFlixDB', { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('common'));
+app.use(cors());
 
+require('./auth')(app);
+const passport = require('passport');
+require('./passport');
+
+const { check, validationResult } = require('express-validator');
 
 //Welcome
 app.get('/', (req, res) => {
@@ -23,7 +31,27 @@ app.get('/', (req, res) => {
 });
 
 
-app.post('/users', (req, res) => {
+app.post('/users', 
+  // Validation logic here for request
+  //you can either use a chain of methods like .not().isEmpty()
+  //which means "opposite of isEmpty" in plain english "is not empty"
+  //or use .isLength({min: 5}) which means
+  //minimum value of 5 characters are only allowed
+  [
+    check('Username', 'Username is required').isLength({min: 5}),
+    check('Username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric(),
+    check('Password', 'Password is required').not().isEmpty(),
+    check('Email', 'Email does not appear to be valid').isEmail()
+  ], (req, res) => {
+
+  // check the validation object for errors
+    let errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+	let hashedPassword = Users.hashPassword(req.body.Password);
 	Users.findOne({ Username: req.body.Username })
 	  .then((user) => {
 		if (user) {
@@ -32,7 +60,7 @@ app.post('/users', (req, res) => {
 		  Users
 			.create({
 			  Username: req.body.Username,
-			  Password: req.body.Password,
+			  Password: hashedPassword,
 			  Email: req.body.Email,
 			  Birthday: req.body.Birthday
 			})
@@ -50,19 +78,19 @@ app.post('/users', (req, res) => {
   });
   
   // Get all users / GET
-app.get('/users', (req, res) => {
-	Users.find()
-	  .then((users) => {
-		res.status(201).json(users);
-	  })
-	  .catch((err) => {
-		console.error(err);
-		res.status(500).send('Error: ' + err);
-	  });
-  });
+// app.get('/users', passport.authenticate('jwt', { session: false }), (req, res) => {
+// 	Users.find()
+// 	  .then((users) => {
+// 		res.status(201).json(users);
+// 	  })
+// 	  .catch((err) => {
+// 		console.error(err);
+// 		res.status(500).send('Error: ' + err);
+// 	  });
+//   });
 
   // Get a user by username / GET
-app.get('/users/:Username', (req, res) => {
+app.get('/users/:Username', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Users.findOne({ Username: req.params.Username })
 	  .then((user) => {
 		res.json(user);
@@ -74,7 +102,7 @@ app.get('/users/:Username', (req, res) => {
   });
 
 // Get all movies / GET
-app.get('/movies', (req, res) => {
+app.get('/movies', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Movies.find()
 	.then((movies) => {
 	  res.status(200).json(movies);
@@ -98,7 +126,7 @@ app.get('/movies', (req, res) => {
   });
   
   //Get genre by name / GET
-  app.get('/movies/genres/:Name', (req, res) => {
+  app.get('/movies/genres/:Name', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Movies.findOne({ "Genre.Name": req.params.Name})
 	.then((movies) => {
 	  res.send(movies.Genre);
@@ -110,7 +138,7 @@ app.get('/movies', (req, res) => {
   });
   
   //Get director by name / GET
-  app.get('/movies/directors/:Name', (req, res) => {
+  app.get('/movies/directors/:Name', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Movies.findOne({"Director.Name": req.params.Name})
 	.then((movies) => {
 	  res.send(movies.Director);
@@ -121,18 +149,7 @@ app.get('/movies', (req, res) => {
 	});
   });
 
-// Update a user's info, by username / UPDATE
-/* We’ll expect JSON in this format
-{
-  Username: String,
-  (required)
-  Password: String,
-  (required)
-  Email: String,
-  (required)
-  Birthday: Date
-}*/
-app.put('/users/:Username', (req, res) => {
+app.put('/users/:Username', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Users.findOneAndUpdate({ Username: req.params.Username }, { $set:
 	  {
 		Username: req.body.Username,
@@ -154,7 +171,7 @@ app.put('/users/:Username', (req, res) => {
 
 
 // Add a movie to a user's list of favorites / UPDATE
-app.post('/users/:Username/movies/:MovieID', (req, res) => {
+app.post('/users/:Username/movies/:MovieID', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Users.findOneAndUpdate({ Username: req.params.Username }, {
 	   $push: { FavoriteMovies: req.params.MovieID }
 	 },
@@ -170,7 +187,7 @@ app.post('/users/:Username/movies/:MovieID', (req, res) => {
   });
 
 //Delete Movie from Favorites / DELETE
-app.delete('/users/:Username/movies/:MovieID', (req, res) => {
+app.delete('/users/:Username/movies/:MovieID', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Users.findOneAndUpdate({ Username: req.params.Username }, {
 	   $pull: { FavoriteMovies: req.params.MovieID }
 	 },
@@ -186,7 +203,7 @@ app.delete('/users/:Username/movies/:MovieID', (req, res) => {
   });
 
 // Delete a user by username / DELETE
-app.delete('/users/:Username', (req, res) => {
+app.delete('/users/:Username', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Users.findOneAndRemove({ Username: req.params.Username })
 	  .then((user) => {
 		if (!user) {

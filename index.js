@@ -12,7 +12,8 @@ const Models = require('./models.js');
 const Movies = Models.Movie; //refer to the model names you defined in “models.js”
 const Users = Models.User; //refer to the model names you defined in “models.js”
 
-mongoose.connect(process.env.CONNECTION_URI, {
+mongoose.connect(`mongodb+srv://adexbam:${process.env.PASSWORD}@myflixdb.jbnef1n.mongodb.net/?retryWrites=true&w=majority
+`, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
   });

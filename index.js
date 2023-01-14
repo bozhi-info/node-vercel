@@ -12,7 +12,10 @@ const Models = require('./models.js');
 const Movies = Models.Movie; //refer to the model names you defined in “models.js”
 const Users = Models.User; //refer to the model names you defined in “models.js”
 
-mongoose.connect('mongodb://localhost:27017/myFlixDB', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(process.env.CONNECTION_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+  });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

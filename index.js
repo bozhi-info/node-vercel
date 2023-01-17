@@ -1,9 +1,11 @@
 const express = require('express'),
 	app = express(),
 	bodyParser = require('body-parser'),
-	morgan = require('morgan');
+	morgan = require('morgan'),
 	cors = require('cors');
-	
+
+
+require('dotenv').config();
 
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', true);
@@ -16,7 +18,7 @@ mongoose.connect(`mongodb+srv://adexbam:${process.env.PASSWORD}@myflixdb.jbnef1n
 `, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
-  });
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -108,8 +110,8 @@ app.get('/users/:Username', passport.authenticate('jwt', { session: false }), (r
 // Get all movies / GET
 app.get('/movies', passport.authenticate('jwt', { session: false }), (req, res) => {
 	Movies.find()
-	.then((movies) => {
-	  res.status(200).json(movies);
+	.then((movie) => {
+	  res.status(200).json(movie);
 	})
 	.catch((err) => {
 	  console.error(err);

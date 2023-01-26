@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 
 let movieSchema = mongoose.Schema({ //define schema for documents in the movies collection 
     Title: {type: String, required: true},
